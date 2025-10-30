@@ -7,6 +7,7 @@ from sklearn.preprocessing import StandardScaler #Esta libreria estandariza dato
 from sklearn.metrics import mean_squared_error, mean_absolute_error #Calcula errores, ejemplo: Posición real: [1, 2, 3] Posición predicha: [1, 3, 2] MAE = (0 + 1 + 1) / 3 = 0.67 posiciones de error promedio
 from scipy.stats import kendalltau #Calcula Kendall's T
 import warnings
+import os
 
 
 
@@ -22,7 +23,8 @@ print("="*70)
 # 1. Cargar datos
 print("\n1. Cargando datos...")
 
-df = pd.read_csv('F1_cleaned_for_model.csv')
+base_dir = os.path.dirname(os.path.abspath(__file__))
+df = pd.read_csv(os.path.join(base_dir, '..', 'data', 'F1_cleaned_for_model.csv'))
 print(f"Dataset cargado: {df.shape[0]:,} registros") #Muestra el numero de registros en el dataset
 
 
@@ -61,13 +63,31 @@ print(f"Pilotos: {driver_dummies.shape[1]} categorías")
 print(f"Automoviles: {constructor_dummies.shape[1]} categorías")
 print(f"Circuitos: {circuit_dummies.shape[1]} categorías")
 
+# === NUEVA VARIABLE Objetivo: Influencia relativa piloto-equipo ===
+print("\n3.1 Creando variable binaria de influencia relativa piloto-equipo...")
+
+# Calcular el promedio de posición de cada equipo (constructor) por carrera
+team_avg = df_model.groupby(['raceId', 'constructorId'])['positionOrder'].mean().reset_index()
+team_avg.rename(columns={'positionOrder': 'constructor_avg_pos'}, inplace=True)
+
+# Unir ese promedio con el dataframe principal
+df_model = df_model.merge(team_avg, on=['raceId', 'constructorId'], how='left')
+
+# Crear variable binaria: 1 si el piloto lo hizo mejor que el promedio del equipo, 0 en caso contrario
+# (Menor posición = mejor resultado)
+df_model['driver_above_team_avg'] = np.where(df_model['positionOrder'] < df_model['constructor_avg_pos'], 1, 0)
+
+print(f"Variable creada: {df_model['driver_above_team_avg'].sum()} pilotos estuvieron por encima del promedio de su equipo.")
+
+
 
 X_features = pd.concat([
-    df_model[['grid', 'year', 'laps']],
-    driver_dummies,
-    constructor_dummies,
-    circuit_dummies
+    df_model[['grid', 'year', 'laps', 'driver_above_team_avg']].reset_index(drop=True),
+    driver_dummies.reset_index(drop=True),
+    constructor_dummies.reset_index(drop=True),
+    circuit_dummies.reset_index(drop=True)
 ], axis=1)
+
 
 
 y_target = df_model['positionOrder']
