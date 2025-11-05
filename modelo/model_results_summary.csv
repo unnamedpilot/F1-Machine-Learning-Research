@@ -1,0 +1,17 @@
+,Value
+Model,Ridge Regression
+Alpha,10
+Train Period,2014-2022
+Test Period,2023-2024
+Train Observations,3103
+Test Observations,827
+Total Features,113
+Driver Features,58
+Constructor Features,20
+Circuit Features,32
+Test RMSE,3.559059811885386
+Test MAE,2.7623897837718747
+Test Kendall Tau (mean),0.587899843385104
+Test Kendall Tau (std),0.10905333161365928
+Constructor Influence (%),54.45815195786111
+Driver Influence (%),45.54184804213888
